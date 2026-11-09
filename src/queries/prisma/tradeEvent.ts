@@ -4,20 +4,6 @@ import type { TradeEvent } from '@/lib/trades';
 
 export type NewTradeEvent = Omit<TradeEvent, 'tradeId'> & { tradeId?: string };
 
-const INHERITED_FIELDS = [
-  'sessionId',
-  'userHash',
-  'product',
-  'side',
-  'isin',
-  'instrumentName',
-  'market',
-  'origin',
-  'tradeCurrency',
-  'settlementCurrency',
-  'quantityType',
-] as const;
-
 const DECIMAL_FIELDS = [
   'quantity',
   'limitPrice',
@@ -53,33 +39,20 @@ export async function saveTradeEvent(event: NewTradeEvent) {
   });
 }
 
-export type OrderUpdate = Partial<Omit<TradeEvent, 'websiteId' | 'orderId' | 'tradeId'>> &
-  Pick<TradeEvent, 'step' | 'occurredAt'>;
+export type OrderUpdate = Omit<TradeEvent, 'websiteId' | 'sessionId' | 'tradeId' | 'orderId'>;
 
-// For the order listener. Logs a step for the trade that sent the order. Fields the update leaves
-// out, such as product, side and instrument, are copied from the trade's latest step.
-export async function updateTradeFromOrder(
-  websiteId: string,
-  orderId: string,
-  update: OrderUpdate,
-) {
-  const latest = await prisma.client.tradeEvent.findFirst({
-    where: { websiteId, orderId },
-    orderBy: { occurredAt: 'desc' },
+// For the order listener: logs the order data as a step on the trade that sent the order, under
+// that trade's website. Order updates belong to no session. Orders Umami has not seen are ignored.
+export async function updateTradeFromOrder(orderId: string, order: OrderUpdate) {
+  const trade = await prisma.client.tradeEvent.findFirst({
+    where: { orderId },
+    orderBy: { occurredAt: 'asc' },
+    select: { tradeId: true, websiteId: true },
   });
 
-  const inherited = latest
-    ? (Object.fromEntries(
-        INHERITED_FIELDS.filter(key => latest[key] != null).map(key => [key, latest[key]]),
-      ) as Partial<TradeEvent>)
-    : {};
-  const event = { ...inherited, ...update, websiteId, orderId } as NewTradeEvent;
+  if (!trade) return null;
 
-  if (!event.product || !event.side) {
-    throw new Error(`Unknown order ${orderId}: product and side are required.`);
-  }
-
-  return saveTradeEvent({ ...event, tradeId: latest?.tradeId });
+  return saveTradeEvent({ ...order, orderId, tradeId: trade.tradeId, websiteId: trade.websiteId });
 }
 
 // Includes earlier steps of trades with any step in the range, so a trade started just before

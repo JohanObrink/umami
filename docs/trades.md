@@ -57,27 +57,25 @@ Queries are in `src/queries/prisma/tradeEvent.ts`:
 - `saveTradeEvent` stores a step. Without a `tradeId`, it takes the `tradeId` of the first step
   with the same `orderId`. If there is none, as for recurring fund orders the app never reported,
   it derives a stable UUID from the website ID and order ID.
-- `updateTradeFromOrder(websiteId, orderId, update)` is for the order listener. It logs `update`
-  (at least `step` and `occurredAt`) on the trade that sent the order. Fields the update leaves
-  out, such as product, side, instrument, user and session, are copied from the trade's latest
-  step. An order Umami has never seen needs `product` and `side` in the update.
+- `updateTradeFromOrder(orderId, order)` is for the order listener. It finds the trade by
+  `orderId` and logs the order data as a step on it, under the trade's website ID, which stays the
+  same across all updates. Order updates have no session. Orders Umami has not seen are ignored.
 - `getTradeEvents` returns every step of the trades with any step in the date range, so a trade
   started before the range is complete.
 
-### Tracker: `umami.trade(step, data, headers)`
+### Tracker: `umami.trade(step, data)`
 
 The app logs steps with the Umami tracker (`src/tracker/index.ts`, built to `public/script.js`).
-`umami.trade` posts one step to `POST /api/trades`. It adds the website ID and `occurredAt` (now,
-unless given) and sends the tracker's session token, so the step is linked to the current
-session. `headers` carries the app's access token. It returns the response, `{ tradeId }`.
+`umami.trade` posts one step to `POST /api/trades`. It adds the website ID and sends the tracker's
+session token, so the step is linked to the current session. It returns the response,
+`{ tradeId }`.
 
 ```js
 const tradeId = crypto.randomUUID();
-const auth = { Authorization: `Bearer ${accessToken}` };
 
-umami.trade('started', { tradeId, product: 'stock', side: 'buy', isin: 'SE0000108656' }, auth);
-umami.trade('estimated', { tradeId, product: 'stock', side: 'buy' }, auth);
-umami.trade('sent', { tradeId, orderId, product: 'stock', side: 'buy', quantity: 100 }, auth);
+umami.trade('started', { tradeId, occurredAt, product: 'stock', side: 'buy', isin: 'SE0000108656' });
+umami.trade('estimated', { tradeId, occurredAt, product: 'stock', side: 'buy' });
+umami.trade('sent', { tradeId, orderId, occurredAt, product: 'stock', side: 'buy', quantity: 100 });
 ```
 
 ### Ingestion: `POST /api/trades`
