@@ -2,7 +2,7 @@ import { colord } from 'colord';
 import { format } from 'date-fns';
 import { useCallback, useMemo } from 'react';
 import { BarChart } from '@/components/charts/BarChart';
-import { useLocale } from '@/components/hooks';
+import { useLocale, useMessages } from '@/components/hooks';
 import { renderDateLabels } from '@/lib/charts';
 import { CHART_COLORS } from '@/lib/constants';
 import { generateTimeSeries } from '@/lib/date';
@@ -24,6 +24,7 @@ export function TradesVolumeChart({
   maxDate,
 }: TradesVolumeChartProps) {
   const { locale, dateLocale } = useLocale();
+  const { t, labels } = useMessages();
 
   const chartData: any = useMemo(() => {
     const sides = ['buy', 'sell'];
@@ -36,7 +37,7 @@ export function TradesVolumeChart({
           .map(p => ({ x: format(p.date, "yyyy-MM-dd'T'HH:mm:ss"), y: p.amount }));
 
         return {
-          label: side === 'buy' ? 'Buy' : 'Sell',
+          label: t(side === 'buy' ? labels.buy : labels.sell),
           data: generateTimeSeries(points, minDate, maxDate, unit, dateLocale),
           backgroundColor: color.alpha(0.6).toRgbString(),
           borderColor: color.alpha(0.7).toRgbString(),
@@ -44,7 +45,7 @@ export function TradesVolumeChart({
         };
       }),
     };
-  }, [series, minDate, maxDate, unit, dateLocale]);
+  }, [series, minDate, maxDate, unit, dateLocale, t, labels]);
 
   const renderXLabel = useCallback(renderDateLabels(unit, locale), [unit, locale]);
 

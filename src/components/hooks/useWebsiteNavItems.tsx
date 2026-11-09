@@ -155,7 +155,7 @@ export function useWebsiteNavItems(websiteId: string) {
         },
         {
           id: 'trades',
-          label: 'Trades',
+          label: t(labels.trades),
           icon: <Money />,
           path: renderPath('/trades'),
         },

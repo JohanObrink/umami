@@ -1,6 +1,8 @@
 import { Box, Column, Grid, Heading, ProgressBar, Row, Text } from '@umami/react-zen';
 import { useMemo } from 'react';
 import { Panel } from '@/components/common/Panel';
+import { useMessages } from '@/components/hooks';
+import { labels, messages } from '@/components/messages';
 import { ListTable } from '@/components/metrics/ListTable';
 import { MetricCard } from '@/components/metrics/MetricCard';
 import { MetricsBar } from '@/components/metrics/MetricsBar';
@@ -13,23 +15,36 @@ import {
 } from '@/lib/trades-funnel';
 
 const STAGES: Record<TradeFunnelStage, { label: string; waiting?: string; gone?: string }> = {
-  started: { label: 'Started (pressed Buy/Sell)' },
-  estimated: { label: 'Got an estimate', waiting: 'in progress', gone: 'abandoned' },
-  sent: { label: 'Sent to market', waiting: 'in progress', gone: 'abandoned' },
-  filled: { label: 'Filled, fully or partly', waiting: 'still open', gone: 'not filled' },
+  started: { label: labels.tradeStageStarted },
+  estimated: {
+    label: labels.tradeStageEstimated,
+    waiting: messages.tradesInProgress,
+    gone: messages.tradesAbandoned,
+  },
+  sent: {
+    label: labels.tradeStageSent,
+    waiting: messages.tradesInProgress,
+    gone: messages.tradesAbandoned,
+  },
+  filled: {
+    label: labels.tradeStageFilled,
+    waiting: messages.tradesStillOpen,
+    gone: messages.tradesNotFilled,
+  },
 };
 
 const OUTCOMES: Record<TradeOutcomeCategory, string> = {
-  filled: 'Filled',
-  partiallyFilled: 'Partly filled, then cancelled or expired',
-  cancelled: 'Cancelled',
-  expired: 'Expired',
-  rejected: 'Rejected',
-  failed: 'Failed',
-  open: 'Still open',
+  filled: labels.tradeOutcomeFilled,
+  partiallyFilled: labels.tradeOutcomePartiallyFilled,
+  cancelled: labels.tradeOutcomeCancelled,
+  expired: labels.tradeOutcomeExpired,
+  rejected: labels.tradeOutcomeRejected,
+  failed: labels.tradeOutcomeFailed,
+  open: labels.tradeOutcomeOpen,
 };
 
 export function TradesFunnel({ events }: { events: TradeEvent[] }) {
+  const { t } = useMessages();
   const funnel = useMemo(() => getTradeFunnel(events), [events]);
   const started = funnel.stages[0].trades;
   const sent = funnel.stages.find(s => s.stage === 'sent')?.trades ?? 0;
@@ -37,21 +52,25 @@ export function TradesFunnel({ events }: { events: TradeEvent[] }) {
 
   return (
     <Column gap>
-      <Heading size="2xl">Funnel</Heading>
+      <Heading size="2xl">{t(labels.funnel)}</Heading>
       <MetricsBar>
-        <MetricCard label="Trades started" value={started} formatValue={formatLongNumber} />
         <MetricCard
-          label="Sent to market"
+          label={t(labels.tradesStarted)}
+          value={started}
+          formatValue={formatLongNumber}
+        />
+        <MetricCard
+          label={t(labels.sentToMarket)}
           value={started ? (sent / started) * 100 : 0}
           formatValue={n => `${Math.round(n)}%`}
         />
         <MetricCard
-          label="Median time to send"
+          label={t(labels.medianTimeToSend)}
           value={funnel.medianMinutesToSend ?? 0}
-          formatValue={n => `${n.toFixed(1)} min`}
+          formatValue={n => t(messages.minutesShort, { x: n.toFixed(1) })}
         />
         <MetricCard
-          label="Estimates per sent trade"
+          label={t(labels.estimatesPerSentTrade)}
           value={funnel.estimatesPerSentTrade ?? 0}
           formatValue={n => n.toFixed(2)}
         />
@@ -89,8 +108,8 @@ export function TradesFunnel({ events }: { events: TradeEvent[] }) {
                   </Column>
                   <Column gap="2">
                     <Row justifyContent="space-between" gap>
-                      <Text weight="bold">{label}</Text>
-                      <Text>{formatLongNumber(trades)} trades</Text>
+                      <Text weight="bold">{t(label)}</Text>
+                      <Text>{t(messages.tradeCount, { count: formatLongNumber(trades) })}</Text>
                     </Row>
                     <Row alignItems="center" gap="6">
                       <ProgressBar
@@ -107,9 +126,15 @@ export function TradesFunnel({ events }: { events: TradeEvent[] }) {
                     </Row>
                     {dropped > 0 && (
                       <Text color="muted" size="sm">
-                        {formatLongNumber(dropped)} dropped: {formatLongNumber(dropped - waiting)}{' '}
-                        {gone}
-                        {waiting > 0 && `, ${formatLongNumber(waiting)} ${waitingLabel}`}
+                        {t(messages.tradesDropped, {
+                          dropped: formatLongNumber(dropped),
+                          gone: [
+                            t(gone, { count: formatLongNumber(dropped - waiting) }),
+                            waiting > 0 && t(waitingLabel, { count: formatLongNumber(waiting) }),
+                          ]
+                            .filter(Boolean)
+                            .join(', '),
+                        })}
                       </Text>
                     )}
                   </Column>
@@ -117,19 +142,18 @@ export function TradesFunnel({ events }: { events: TradeEvent[] }) {
               );
             })}
             <Text color="muted" size="sm">
-              Abandoned means no activity for {TRADE_ABANDON_MINUTES} minutes before being sent.
-              Only trades started in the app are included.
+              {t(messages.tradesFunnelNote, { minutes: TRADE_ABANDON_MINUTES })}
             </Text>
           </Column>
         </Panel>
         <Panel>
-          <Heading size="lg">Outcome of sent trades</Heading>
+          <Heading size="lg">{t(labels.outcomeOfSentTrades)}</Heading>
           <ListTable
-            title="Outcome"
-            metric="Trades"
+            title={t(labels.outcome)}
+            metric={t(labels.trades)}
             animate={false}
             data={funnel.outcomes.map(o => ({
-              label: OUTCOMES[o.outcome],
+              label: t(OUTCOMES[o.outcome]),
               count: o.trades,
               percent: outcomeTotal ? (o.trades / outcomeTotal) * 100 : 0,
             }))}

@@ -3,13 +3,14 @@ import { Button, Column, Row } from '@umami/react-zen';
 import { useMemo, useState } from 'react';
 import { WebsiteControls } from '@/app/(main)/websites/[websiteId]/WebsiteControls';
 import { LoadingPanel } from '@/components/common/LoadingPanel';
-import { useDateRange, useTimezone, useTradeEventsQuery } from '@/components/hooks';
+import { useDateRange, useMessages, useTimezone, useTradeEventsQuery } from '@/components/hooks';
 import { filterTradeEvents, type VolumeDimension, type VolumeFilters } from '@/lib/trades-volume';
 import { DIMENSION_LABELS, useFormatDimension } from './dimensions';
 import { TradesFunnel } from './TradesFunnel';
 import { TradesVolume } from './TradesVolume';
 
 export function TradesPage({ websiteId }: { websiteId: string }) {
+  const { t, labels } = useMessages();
   const { timezone } = useTimezone();
   const {
     dateRange: { startDate, endDate, unit },
@@ -37,11 +38,11 @@ export function TradesPage({ websiteId }: { websiteId: string }) {
         <Row gap wrap="wrap" alignItems="center">
           {(Object.entries(filters) as [VolumeDimension, string][]).map(([dimension, value]) => (
             <Button key={dimension} variant="outline" onPress={() => removeFilter(dimension)}>
-              {DIMENSION_LABELS[dimension]}: {formatDimension(dimension, value)} ✕
+              {t(DIMENSION_LABELS[dimension])}: {formatDimension(dimension, value)} ✕
             </Button>
           ))}
           <Button variant="quiet" onPress={() => setFilters({})}>
-            Clear filters
+            {t(labels.clearFilters)}
           </Button>
         </Row>
       )}
