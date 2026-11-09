@@ -154,6 +154,12 @@ export function useWebsiteNavItems(websiteId: string) {
           path: renderPath('/revenue'),
         },
         {
+          id: 'trades',
+          label: 'Trades',
+          icon: <Money />,
+          path: renderPath('/trades'),
+        },
+        {
           id: 'attribution',
           label: t(labels.attribution),
           icon: <Network />,
