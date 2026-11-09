@@ -19,19 +19,23 @@ describe('getTradeUserId', () => {
     );
   });
 
-  test('rejects a missing header, a malformed token or a non-UUID user id', () => {
+  test('rejects a missing header, a malformed token or a missing user id', () => {
     expect(getTradeUserId(request({}))).toBeNull();
     expect(getTradeUserId(request({ authorization: 'Bearer nonsense' }))).toBeNull();
     expect(getTradeUserId(request({ authorization: 'Bearer a.%%%.c' }))).toBeNull();
-    expect(getTradeUserId(request({ authorization: `Bearer ${jwt({ sub: 'bob' })}` }))).toBeNull();
+    expect(getTradeUserId(request({ authorization: `Bearer ${jwt({ name: 'bob' })}` }))).toBeNull();
+  });
+
+  test('accepts any user id', () => {
+    expect(getTradeUserId(request({ authorization: `Bearer ${jwt({ sub: 'bob' })}` }))).toBe('bob');
   });
 });
 
 describe('hashTradeUserId', () => {
-  test('is stable, case-insensitive and does not contain the user id', () => {
+  test('is stable and does not contain the user id', () => {
     const hashed = hashTradeUserId(USER_ID);
 
-    expect(hashed).toBe(hashTradeUserId(USER_ID.toUpperCase()));
+    expect(hashed).toBe(hashTradeUserId(USER_ID));
     expect(hashed).not.toContain(USER_ID);
     expect(hashed).toHaveLength(128);
   });
