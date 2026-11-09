@@ -174,6 +174,21 @@ export type UmamiTracker = {
      */
     (data: EventData & { id?: string }): Promise<void>;
   };
+  /**
+   * Logs a step of a trade to `/api/trades`, linked to the current session. `headers` carries
+   * the app's access token.
+   *
+   * @example ```
+   * umami.trade('started', { tradeId, product: 'stock', side: 'buy', isin: 'SE0000108656' }, {
+   *   Authorization: `Bearer ${accessToken}`,
+   * });
+   * ```
+   */
+  trade: (
+    step: string,
+    data: Record<string, unknown>,
+    headers?: Record<string, string>,
+  ) => Promise<unknown>;
   getSession: () => {
     cache: string | undefined;
     website: string | null;
@@ -256,6 +271,7 @@ type MetricEntry = PerformanceEntry & {
   const host =
     hostUrl || '__COLLECT_API_HOST__' || currentScript.src.split('/').slice(0, -1).join('/');
   const endpoint = `${host.replace(/\/$/, '')}__COLLECT_API_ENDPOINT__`;
+  const tradeEndpoint = `${host.replace(/\/$/, '')}/api/trades`;
   const screen = `${width}x${height}`;
   const eventRegex = /data-umami-event-([\w-_]+)/;
   const eventNameAttribute = `${_data}umami-event`;
@@ -459,6 +475,33 @@ type MetricEntry = PerformanceEntry & {
     );
   };
 
+  const trade = async (
+    step: string,
+    data: Payload,
+    headers: Record<string, string> = {},
+  ): Promise<unknown> => {
+    if (trackingDisabled()) return;
+
+    const res = await fetch(tradeEndpoint, {
+      keepalive: true,
+      method: 'POST',
+      body: JSON.stringify({
+        occurredAt: new Date().toISOString(),
+        ...data,
+        step,
+        websiteId: website,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(cache && { 'x-umami-cache': cache }),
+        ...headers,
+      },
+      credentials,
+    });
+
+    return res.json();
+  };
+
   /* Performance */
 
   const initPerformance = () => {
@@ -632,6 +675,7 @@ type MetricEntry = PerformanceEntry & {
     window.umami = {
       track,
       identify,
+      trade,
       getSession: () => ({ cache, website }),
     } as UmamiTracker;
   }

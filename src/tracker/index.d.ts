@@ -162,6 +162,21 @@ export type UmamiTracker = {
       },
     ): Promise<void>;
   };
+  /**
+   * Logs a step of a trade to `/api/trades`, linked to the current session. `headers` carries
+   * the app's access token.
+   *
+   * @example ```
+   * umami.trade('started', { tradeId, product: 'stock', side: 'buy', isin: 'SE0000108656' }, {
+   *   Authorization: `Bearer ${accessToken}`,
+   * });
+   * ```
+   */
+  trade: (
+    step: string,
+    data: Record<string, unknown>,
+    headers?: Record<string, string>,
+  ) => Promise<unknown>;
   getSession: () => {
     cache: string | undefined;
     website: string | null;

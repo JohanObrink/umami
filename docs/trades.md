@@ -48,20 +48,41 @@ The fields of each step are the `TradeEvent` type in `src/lib/trades.ts`.
 
 The `trade_event` table (`TradeEvent` in `prisma/schema.prisma`, migration `27_add_trade_event`)
 has one row per step. It is indexed on `(website_id, occurred_at)`, `(website_id, order_id)` and
-`trade_id`. Amounts are `DECIMAL`. `session_id` is optional and has no foreign key, because app
-steps are not part of a browser session. Deleting a website deletes its trade events.
+`trade_id`. Amounts are `DECIMAL`. `session_id` links a step to the Umami session that sent it.
+It is optional and has no foreign key, because order updates have no session. Deleting a website
+deletes its trade events.
 
 Queries are in `src/queries/prisma/tradeEvent.ts`:
 
 - `saveTradeEvent` stores a step. Without a `tradeId`, it takes the `tradeId` of the first step
   with the same `orderId`. If there is none, as for recurring fund orders the app never reported,
   it derives a stable UUID from the website ID and order ID.
+- `updateTradeFromOrder(websiteId, orderId, update)` is for the order listener. It logs `update`
+  (at least `step` and `occurredAt`) on the trade that sent the order. Fields the update leaves
+  out, such as product, side, instrument, user and session, are copied from the trade's latest
+  step. An order Umami has never seen needs `product` and `side` in the update.
 - `getTradeEvents` returns every step of the trades with any step in the date range, so a trade
   started before the range is complete.
 
+### Tracker: `umami.trade(step, data, headers)`
+
+The app logs steps with the Umami tracker (`src/tracker/index.ts`, built to `public/script.js`).
+`umami.trade` posts one step to `POST /api/trades`. It adds the website ID and `occurredAt` (now,
+unless given) and sends the tracker's session token, so the step is linked to the current
+session. `headers` carries the app's access token. It returns the response, `{ tradeId }`.
+
+```js
+const tradeId = crypto.randomUUID();
+const auth = { Authorization: `Bearer ${accessToken}` };
+
+umami.trade('started', { tradeId, product: 'stock', side: 'buy', isin: 'SE0000108656' }, auth);
+umami.trade('estimated', { tradeId, product: 'stock', side: 'buy' }, auth);
+umami.trade('sent', { tradeId, orderId, product: 'stock', side: 'buy', quantity: 100 }, auth);
+```
+
 ### Ingestion: `POST /api/trades`
 
-The app sends one step per request:
+The tracker sends one step per request:
 
 ```json
 {
@@ -78,7 +99,8 @@ The app sends one step per request:
 }
 ```
 
-`tradeId` or `orderId` is required. The response is `{ "tradeId": "…" }`.
+`tradeId` or `orderId` is required. The response is `{ "tradeId": "…" }`. A valid tracker
+session token in the `x-umami-cache` header sets the step's session.
 
 Authentication is specific to this fork. The app sends an access token, and a WAF/IAP in front of
 Umami validates it and replaces it with a user JWT. Umami does not verify the JWT. It splits it on
@@ -148,12 +170,11 @@ pnpm db:seed-trades <websiteId>  # post 30 days of fake trade steps to the runni
 ## TODO
 
 - **Order updates from Pub/Sub.** Listen to the TradeFlow order update topic, map each order
-  snapshot to a step (`modified` or an outcome) and save it with `saveTradeEvent`, by `orderId`.
-  This path has no user JWT. The message format, topic, subscription and credentials are still
-  unknown.
+  snapshot to a step (`modified` or an outcome) and call `updateTradeFromOrder`. This path has no
+  user JWT. The message format, topic, subscription and credentials are still unknown.
 - **Confirm the JWT header and claim** that the WAF/IAP produces. Defaults are
   `Authorization: Bearer` and `sub`.
-- **App integration.** The app must generate the `tradeId` and send `started`, `estimated` and
-  `sent`, with `orderId` on `sent`.
+- **React Native app.** Run the tracker in the app, wire it into React Navigation, and call
+  `umami.trade` for `started`, `estimated` and `sent`, with `orderId` on `sent`.
 - **Fund switch,** once TradeFlow supports it.
 - **Server-side aggregation,** if returning raw events gets too slow for large date ranges.

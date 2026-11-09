@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { CACHE_TOKEN_TYPE } from '@/lib/constants';
+import { secret } from '@/lib/crypto';
+import { parseToken } from '@/lib/jwt';
 import { fetchWebsite } from '@/lib/load';
 import { parseRequest } from '@/lib/request';
 import { badRequest, json, unauthorized } from '@/lib/response';
@@ -55,7 +58,19 @@ export async function POST(request: Request) {
     return badRequest({ message: 'Website not found.' });
   }
 
-  const { tradeId } = await saveTradeEvent({ ...body, userHash: hashTradeUserId(userId) });
+  // The tracker sends its session token, which links the step to the current session.
+  const cache = request.headers.get('x-umami-cache');
+  const session = cache ? await parseToken(cache, secret()) : null;
+  const sessionId =
+    session?.type === CACHE_TOKEN_TYPE && session.websiteId === body.websiteId
+      ? session.sessionId
+      : body.sessionId;
+
+  const { tradeId } = await saveTradeEvent({
+    ...body,
+    sessionId,
+    userHash: hashTradeUserId(userId),
+  });
 
   return json({ tradeId });
 }
