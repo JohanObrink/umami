@@ -1,9 +1,9 @@
 'use client';
-import { Button, Column, Row, Text } from '@umami/react-zen';
+import { Button, Column, Row } from '@umami/react-zen';
 import { useMemo, useState } from 'react';
 import { WebsiteControls } from '@/app/(main)/websites/[websiteId]/WebsiteControls';
-import { useDateRange, useTimezone } from '@/components/hooks';
-import { generateFakeTradeEvents } from '@/lib/trades-fake';
+import { LoadingPanel } from '@/components/common/LoadingPanel';
+import { useDateRange, useTimezone, useTradeEventsQuery } from '@/components/hooks';
 import { filterTradeEvents, type VolumeDimension, type VolumeFilters } from '@/lib/trades-volume';
 import { DIMENSION_LABELS, useFormatDimension } from './dimensions';
 import { TradesFunnel } from './TradesFunnel';
@@ -16,10 +16,8 @@ export function TradesPage({ websiteId }: { websiteId: string }) {
   } = useDateRange({ timezone });
   const [filters, setFilters] = useState<VolumeFilters>({});
 
-  const events = useMemo(
-    () => generateFakeTradeEvents({ websiteId, startDate, endDate }),
-    [websiteId, startDate, endDate],
-  );
+  const { data, isLoading, isFetching, error } = useTradeEventsQuery(websiteId);
+  const events = useMemo(() => data ?? [], [data]);
   const filtered = useMemo(() => filterTradeEvents(events, filters), [events, filters]);
   const formatDimension = useFormatDimension(events);
 
@@ -35,7 +33,6 @@ export function TradesPage({ websiteId }: { websiteId: string }) {
   return (
     <Column gap>
       <WebsiteControls websiteId={websiteId} />
-      <Text color="muted">Prototype using generated data.</Text>
       {Object.keys(filters).length > 0 && (
         <Row gap wrap="wrap" alignItems="center">
           {(Object.entries(filters) as [VolumeDimension, string][]).map(([dimension, value]) => (
@@ -48,16 +45,20 @@ export function TradesPage({ websiteId }: { websiteId: string }) {
           </Button>
         </Row>
       )}
-      <TradesFunnel events={filtered} />
-      <TradesVolume
-        events={filtered}
-        filters={filters}
-        onAddFilter={addFilter}
-        formatDimension={formatDimension}
-        startDate={startDate}
-        endDate={endDate}
-        unit={unit}
-      />
+      <LoadingPanel data={data} isLoading={isLoading} isFetching={isFetching} error={error}>
+        <Column gap>
+          <TradesFunnel events={filtered} />
+          <TradesVolume
+            events={filtered}
+            filters={filters}
+            onAddFilter={addFilter}
+            formatDimension={formatDimension}
+            startDate={startDate}
+            endDate={endDate}
+            unit={unit}
+          />
+        </Column>
+      </LoadingPanel>
     </Column>
   );
 }

@@ -67,6 +67,7 @@ export * from './queries/useTeamMembersQuery';
 export * from './queries/useTeamQuery';
 export * from './queries/useTeamsQuery';
 export * from './queries/useTeamWebsitesQuery';
+export * from './queries/useTradeEventsQuery';
 export * from './queries/useTwoFactorStatusQuery';
 export * from './queries/useTwoFactorUserStatus';
 export * from './queries/useTwoFactorVerifyMutation';
