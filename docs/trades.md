@@ -123,10 +123,27 @@ key, such as `label.trades`, as for other untranslated Umami labels.
 
 ### Development
 
-- `src/lib/trades-fake.ts` generates realistic fake steps for testing and demos.
+Local setup:
+
+```sh
+docker run -d --name umami-trades-pg -p 5433:5432 \
+  -e POSTGRES_USER=umami -e POSTGRES_PASSWORD=umami -e POSTGRES_DB=umami postgres:15
+# .env (not committed)
+#   DATABASE_URL=postgresql://umami:umami@localhost:5433/umami
+#   APP_SECRET=<any random string>
+pnpm install
+pnpm build:db && pnpm check:db   # generate the Prisma client, apply migrations
+PORT=3001 pnpm dev               # log in as admin / umami and add a website
+pnpm db:seed-trades <websiteId>  # post 30 days of fake trade steps to the running server
+```
+
+- `scripts/seed-trades.ts` posts steps from `src/lib/trades-fake.ts` through `POST /api/trades`,
+  with fake unsigned JWTs. Options: `--days`, `--url`.
 - Tests are in `src/lib/trades-*.test.ts`.
 - To try ingestion with curl, build an unsigned JWT such as
   `base64url('{"alg":"none"}').base64url('{"sub":"<user id>"}').x`.
+- The TradeFlow API spec, which the steps and fields are based on, is
+  `packages/schema/schemas/tradeflow-api.yaml` in the `tradeflow-monorepo` repository.
 
 ## TODO
 

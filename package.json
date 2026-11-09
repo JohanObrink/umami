@@ -64,6 +64,7 @@
     "test:api:down": "tsx scripts/test-api.ts --down",
     "test:api:coverage": "tsx scripts/test-api.ts --coverage-report",
     "db:seed": "tsx scripts/seed-data.ts",
+    "db:seed-trades": "tsx scripts/seed-trades.ts",
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check --write"
