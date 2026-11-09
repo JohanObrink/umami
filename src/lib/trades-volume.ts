@@ -30,6 +30,27 @@ export interface VolumeResult {
 
 const OUTCOMES = new Set<string>(TRADE_OUTCOME_STEPS);
 
+// Keeps every step of the trades that match. Early steps may lack fields such as market, so a
+// trade is matched on the latest known value of each field across its steps.
+export function filterTradeEvents(events: TradeEvent[], filters: VolumeFilters) {
+  const entries = Object.entries(filters) as [VolumeDimension, string][];
+  if (!entries.length) return events;
+
+  const known = new Map<string, VolumeFilters>();
+  for (const e of [...events].sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime())) {
+    const values = known.get(e.tradeId) ?? {};
+    for (const [key] of entries) {
+      if (e[key]) values[key] = e[key];
+    }
+    known.set(e.tradeId, values);
+  }
+
+  return events.filter(e => {
+    const values = known.get(e.tradeId) ?? {};
+    return entries.every(([key, value]) => values[key] === value);
+  });
+}
+
 // The last outcome of each trade that filled anything. A fund's `completed` replaces its
 // `executed`, so each trade is counted once.
 export function getFilledTrades(events: TradeEvent[]) {

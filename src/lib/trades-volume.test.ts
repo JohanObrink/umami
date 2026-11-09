@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import type { TradeEvent } from './trades';
-import { getFilledTrades, getVolume } from './trades-volume';
+import { filterTradeEvents, getFilledTrades, getVolume } from './trades-volume';
 
 const day = (d: number) => new Date(Date.UTC(2026, 10, d));
 const bucket = (date: Date) =>
@@ -44,6 +44,21 @@ describe('getFilledTrades', () => {
     ];
 
     expect(getFilledTrades(events).map(e => e.tradeId)).toEqual(['c']);
+  });
+});
+
+describe('filterTradeEvents', () => {
+  test('keeps all steps of a matching trade, even steps without the field', () => {
+    const events = [
+      event({ tradeId: 'a', step: 'started', market: undefined }),
+      event({ tradeId: 'a', step: 'sent', market: 'XHEL' }),
+      event({ tradeId: 'b', step: 'started', market: undefined }),
+      event({ tradeId: 'b', step: 'sent', market: 'XSTO' }),
+    ];
+
+    expect(
+      filterTradeEvents(events, { market: 'XHEL' }).map(e => `${e.tradeId}:${e.step}`),
+    ).toEqual(['a:started', 'a:sent']);
   });
 });
 

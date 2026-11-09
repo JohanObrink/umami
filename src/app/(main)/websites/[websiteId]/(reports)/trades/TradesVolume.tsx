@@ -1,4 +1,4 @@
-import { Button, Column, Grid, Heading, ListItem, Row, Select, Text } from '@umami/react-zen';
+import { Button, Column, Grid, Heading, ListItem, Select } from '@umami/react-zen';
 import { useMemo, useState } from 'react';
 import { Panel } from '@/components/common/Panel';
 import { ListTable } from '@/components/metrics/ListTable';
@@ -6,52 +6,36 @@ import { MetricCard } from '@/components/metrics/MetricCard';
 import { MetricsBar } from '@/components/metrics/MetricsBar';
 import { DATE_FUNCTIONS } from '@/lib/date';
 import { formatLongCurrency, formatLongNumber } from '@/lib/format';
-import { generateFakeTradeEvents } from '@/lib/trades-fake';
+import type { TradeEvent } from '@/lib/trades';
 import {
   getVolume,
   VOLUME_DIMENSIONS,
   type VolumeDimension,
   type VolumeFilters,
 } from '@/lib/trades-volume';
+import { DIMENSION_LABELS, type FormatDimension } from './dimensions';
 import { TradesVolumeChart } from './TradesVolumeChart';
 
-const DIMENSION_LABELS: Record<VolumeDimension, string> = {
-  tradeCurrency: 'Trade currency',
-  market: 'Market',
-  isin: 'Instrument',
-  side: 'Side',
-  product: 'Product',
-  origin: 'Origin',
-};
-
 export interface TradesVolumeProps {
-  websiteId: string;
+  events: TradeEvent[];
+  filters: VolumeFilters;
+  onAddFilter: (dimension: VolumeDimension, value: string) => void;
+  formatDimension: FormatDimension;
   startDate: Date;
   endDate: Date;
   unit: string;
 }
 
-export function TradesVolume({ websiteId, startDate, endDate, unit }: TradesVolumeProps) {
-  const [filters, setFilters] = useState<VolumeFilters>({});
+export function TradesVolume({
+  events,
+  filters,
+  onAddFilter,
+  formatDimension,
+  startDate,
+  endDate,
+  unit,
+}: TradesVolumeProps) {
   const [groupBy, setGroupBy] = useState<VolumeDimension>('tradeCurrency');
-
-  const events = useMemo(
-    () => generateFakeTradeEvents({ websiteId, startDate, endDate }),
-    [websiteId, startDate, endDate],
-  );
-
-  const instrumentNames = useMemo(
-    () => new Map(events.map(e => [e.isin, e.instrumentName])),
-    [events],
-  );
-
-  const formatValue = (dimension: VolumeDimension, value: string) => {
-    if (!value) return '(none)';
-    if (dimension !== 'isin') return value;
-    const name = instrumentNames.get(value);
-    return name ? `${name} (${value})` : value;
-  };
-
   const groupOptions = VOLUME_DIMENSIONS.filter(d => !filters[d]);
   const activeGroupBy = groupOptions.includes(groupBy) ? groupBy : (groupOptions[0] ?? groupBy);
 
@@ -62,38 +46,11 @@ export function TradesVolume({ websiteId, startDate, endDate, unit }: TradesVolu
 
   const formatAmount = (n: number) => formatLongCurrency(n, volume.currency);
 
-  const addFilter = (dimension: VolumeDimension, value: string) => {
-    if (!value) return;
-    setFilters({ ...filters, [dimension]: value });
-  };
-
-  const removeFilter = (dimension: VolumeDimension) => {
-    const { [dimension]: _, ...rest } = filters;
-    setFilters(rest);
-  };
-
   return (
     <Column gap>
-      <Text color="muted">Prototype using generated data.</Text>
-      <Row gap wrap="wrap" alignItems="center">
-        {Object.entries(filters).map(([dimension, value]) => (
-          <Button
-            key={dimension}
-            variant="outline"
-            onPress={() => removeFilter(dimension as VolumeDimension)}
-          >
-            {DIMENSION_LABELS[dimension as VolumeDimension]}:{' '}
-            {formatValue(dimension as VolumeDimension, value)} ✕
-          </Button>
-        ))}
-        {Object.keys(filters).length > 0 && (
-          <Button variant="quiet" onPress={() => setFilters({})}>
-            Clear filters
-          </Button>
-        )}
-      </Row>
+      <Heading size="2xl">Volume</Heading>
       <MetricsBar>
-        <MetricCard label="Trades" value={volume.trades} formatValue={formatLongNumber} />
+        <MetricCard label="Filled trades" value={volume.trades} formatValue={formatLongNumber} />
         <MetricCard
           label={`Volume (${volume.currency})`}
           value={volume.amount}
@@ -136,8 +93,8 @@ export function TradesVolume({ websiteId, startDate, endDate, unit }: TradesVolu
               percent: volume.amount ? (row.amount / volume.amount) * 100 : 0,
             }))}
             renderLabel={row => (
-              <Button variant="quiet" onPress={() => addFilter(activeGroupBy, row.label)}>
-                {formatValue(activeGroupBy, row.label)}
+              <Button variant="quiet" onPress={() => onAddFilter(activeGroupBy, row.label)}>
+                {formatDimension(activeGroupBy, row.label)}
               </Button>
             )}
           />
