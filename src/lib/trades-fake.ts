@@ -269,14 +269,16 @@ function generateTrade(rand: () => number, websiteId: string, startedAt: Date, n
         ['rejected', 10],
       ]);
 
+  const fundUnits =
+    quantityType === 'amount'
+      ? Math.round((quantity / (price * FX_TO_SEK[instrument.currency])) * 10_000) / 10_000
+      : quantity;
   const filledQuantity =
     outcome === 'completed'
       ? quantity
       : outcome === 'executed'
-        ? quantityType === 'amount'
-          ? Math.round((quantity / price) * 10_000) / 10_000
-          : quantity
-        : (outcome === 'cancelled' || outcome === 'expired') && rand() < 0.4
+        ? fundUnits
+        : !isFund && (outcome === 'cancelled' || outcome === 'expired') && rand() < 0.4
           ? Math.max(1, Math.floor(quantity * rand()))
           : 0;
   const avgPrice = filledQuantity
