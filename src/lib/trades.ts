@@ -38,6 +38,7 @@ export interface TradeEvent {
   side: TradeSide;
   // For a fund switch, the fund switched to.
   isin?: string;
+  instrumentName?: string;
   // Market identifier code (MIC), such as XSTO. Stock/ETF only.
   market?: string;
   origin?: TradeOrigin;

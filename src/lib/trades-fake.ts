@@ -16,7 +16,6 @@ interface FakeInstrument {
   price: number;
 }
 
-// Names are only for the prototype UI; TradeEvent has no instrument name.
 export const FAKE_INSTRUMENTS: FakeInstrument[] = [
   {
     isin: 'SE0000667925',
@@ -205,6 +204,7 @@ function generateTrade(rand: () => number, websiteId: string, startedAt: Date, n
     product: instrument.product,
     side,
     isin: instrument.isin,
+    instrumentName: instrument.name,
     market: instrument.market,
     origin,
     tradeCurrency: instrument.currency,

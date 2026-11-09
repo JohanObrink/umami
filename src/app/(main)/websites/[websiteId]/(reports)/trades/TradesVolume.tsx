@@ -6,7 +6,7 @@ import { MetricCard } from '@/components/metrics/MetricCard';
 import { MetricsBar } from '@/components/metrics/MetricsBar';
 import { DATE_FUNCTIONS } from '@/lib/date';
 import { formatLongCurrency, formatLongNumber } from '@/lib/format';
-import { FAKE_INSTRUMENTS, generateFakeTradeEvents } from '@/lib/trades-fake';
+import { generateFakeTradeEvents } from '@/lib/trades-fake';
 import {
   getVolume,
   VOLUME_DIMENSIONS,
@@ -24,13 +24,6 @@ const DIMENSION_LABELS: Record<VolumeDimension, string> = {
   origin: 'Origin',
 };
 
-const INSTRUMENT_NAMES = new Map(FAKE_INSTRUMENTS.map(i => [i.isin, i.name]));
-
-function formatValue(dimension: VolumeDimension, value: string) {
-  if (!value) return '(none)';
-  return dimension === 'isin' ? `${INSTRUMENT_NAMES.get(value) ?? value} (${value})` : value;
-}
-
 export interface TradesVolumeProps {
   websiteId: string;
   startDate: Date;
@@ -46,6 +39,18 @@ export function TradesVolume({ websiteId, startDate, endDate, unit }: TradesVolu
     () => generateFakeTradeEvents({ websiteId, startDate, endDate }),
     [websiteId, startDate, endDate],
   );
+
+  const instrumentNames = useMemo(
+    () => new Map(events.map(e => [e.isin, e.instrumentName])),
+    [events],
+  );
+
+  const formatValue = (dimension: VolumeDimension, value: string) => {
+    if (!value) return '(none)';
+    if (dimension !== 'isin') return value;
+    const name = instrumentNames.get(value);
+    return name ? `${name} (${value})` : value;
+  };
 
   const groupOptions = VOLUME_DIMENSIONS.filter(d => !filters[d]);
   const activeGroupBy = groupOptions.includes(groupBy) ? groupBy : (groupOptions[0] ?? groupBy);
