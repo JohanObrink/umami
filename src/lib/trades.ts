@@ -27,6 +27,8 @@ export type TradeQuantityType = 'shares' | 'amount' | 'units' | 'percent';
 export interface TradeEvent {
   websiteId: string;
   sessionId?: string;
+  // Hash of the app user's id, never the id itself.
+  userHash?: string;
   tradeId: string;
   // Set from the `sent` step onward.
   orderId?: string;

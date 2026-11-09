@@ -122,6 +122,7 @@ model Website {
   sessionReplays      SessionReplay[]
   sessionReplaysSaved SessionReplaySaved[]
   heatmapEvents       HeatmapEvent[]
+  tradeEvents         TradeEvent[]
 
   @@index([userId])
   @@index([teamId])
@@ -335,6 +336,40 @@ model Revenue {
   @@index([websiteId, createdAt])
   @@index([websiteId, sessionId, createdAt])
   @@map("revenue")
+}
+
+model TradeEvent {
+  id                 String    @id() @map("trade_event_id") @db.Uuid
+  websiteId          String    @map("website_id") @db.Uuid
+  sessionId          String?   @map("session_id") @db.Uuid
+  userHash           String?   @map("user_hash") @db.VarChar(128)
+  tradeId            String    @map("trade_id") @db.Uuid
+  orderId            String?   @map("order_id") @db.VarChar(100)
+  step               String    @db.VarChar(20)
+  occurredAt         DateTime  @map("occurred_at") @db.Timestamptz(6)
+  product            String    @db.VarChar(10)
+  side               String    @db.VarChar(10)
+  isin               String?   @db.VarChar(12)
+  instrumentName     String?   @map("instrument_name") @db.VarChar(200)
+  market             String?   @db.VarChar(10)
+  origin             String?   @db.VarChar(20)
+  tradeCurrency      String?   @map("trade_currency") @db.VarChar(3)
+  settlementCurrency String?   @map("settlement_currency") @db.VarChar(3)
+  quantityType       String?   @map("quantity_type") @db.VarChar(10)
+  quantity           Decimal?  @db.Decimal(24, 8)
+  limitPrice         Decimal?  @map("limit_price") @db.Decimal(24, 8)
+  filledQuantity     Decimal?  @map("filled_quantity") @db.Decimal(24, 8)
+  avgPrice           Decimal?  @map("avg_price") @db.Decimal(24, 8)
+  settlementAmount   Decimal?  @map("settlement_amount") @db.Decimal(24, 4)
+  orderStatus        String?   @map("order_status") @db.VarChar(30)
+  createdAt          DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  website Website @relation(fields: [websiteId], references: [id])
+
+  @@index([websiteId, occurredAt])
+  @@index([websiteId, orderId])
+  @@index([tradeId])
+  @@map("trade_event")
 }
 
 model Link {

@@ -34,6 +34,10 @@ async function deleteWebsiteDependentData(tx: any, websiteId: string) {
     where: { websiteId },
   });
 
+  await tx.tradeEvent.deleteMany({
+    where: { websiteId },
+  });
+
   await tx.eventData.deleteMany({
     where: { websiteId },
   });

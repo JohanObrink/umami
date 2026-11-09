@@ -45,6 +45,11 @@ function createDeleteTx(calls: string[]) {
         calls.push('revenue');
       }),
     },
+    tradeEvent: {
+      deleteMany: vi.fn(async () => {
+        calls.push('tradeEvent');
+      }),
+    },
     eventData: {
       deleteMany: vi.fn(async () => {
         calls.push('eventData');
@@ -145,6 +150,7 @@ describe('website delete dependencies', () => {
       'sessionReplay',
       'heatmapEvent',
       'revenue',
+      'tradeEvent',
       'eventData',
       'rawSql',
       'rawSql',
@@ -185,6 +191,7 @@ describe('website delete dependencies', () => {
       'sessionReplay',
       'heatmapEvent',
       'revenue',
+      'tradeEvent',
       'eventData',
       'rawSql',
       'rawSql',
